@@ -1,5 +1,5 @@
 %% =============================================================================
-%% Copyright 2013 AONO Tomohiko
+%% Copyright 2013-2014 AONO Tomohiko
 %%
 %% This library is free software; you can redistribute it and/or
 %% modify it under the terms of the GNU Lesser General Public
@@ -17,16 +17,19 @@
 
 -module(eroonga).
 
+-include("eroonga_internal.hrl").
+
 %% -- public: application --
 -export([start/0, stop/0, get_client_version/0]).
 
 %% -- public: pool --
 -export([connect/1, close/2]).
 
-%% -- public: worker --
--export([command/2]).
+%% -- public: client --
+-export([command/2, command/3]).
 
--export([status/1, table_list/1]).
+%% -- public: driver --
+-export([select/3, select/4]).
 
 %% == public: application ==
 
@@ -65,26 +68,27 @@ close(Pool, Worker)
   when is_atom(Pool), is_pid(Worker) ->
     eroonga_app:checkin(Pool, Worker).
 
-%% == public: worker ==
+%% == public: client ==
 
 -spec command(pid(),binary()) -> {ok,term()}|{error,_}.
 command(Pid, Binary)
   when is_pid(Pid), is_binary(Binary) ->
-    eroonga_client:call(Pid, {call,[Binary]}).
+    command(eroonga_client, Pid, Binary). % TODO
+
+-spec command(module(),pid(),binary()) -> {ok,term()}|{error,_}.
+command(Module, Pid, Binary)
+  when is_atom(Module), is_pid(Pid), is_binary(Binary) ->
+    apply(Module, call, [Pid, {call,[Binary]}]).
 
 
--spec status(pid()) -> {ok,term()}|{error,_}.
-status(Pid)
-  when is_pid(Pid) ->
-    command(Pid, <<"status">>).
+%% == public: driver ==
 
--spec table_list(pid()) -> {ok,term()}|{error,_}.
-table_list(Pid)
-  when is_pid(Pid) ->
-    command(Pid, <<"table_list">>).
+-spec select(pid(),binary(),binary()) -> {ok,term()}|{error,_}.
+select(Pid, Table, Expression)
+  when is_pid(Pid), is_binary(Table), is_binary(Expression) ->
+    select(eroonga_port, Pid, Table, Expression). % TODO
 
-%% TODO
-%%  cache_limit, check, clearlock, column_create, column_list, column_remove,
-%%  column_rename, define_selector, defrag, delete, dump, load, log_level,
-%%  log_put, log_reopen, normalize, quit, register, ruby_eval, ruby_load,
-%%  select, shutdown, suggest, table_create, table_remove, tokenize,truncate
+-spec select(module(),pid(),binary(),binary()) -> {ok,term()}|{error,_}.
+select(Module, Pid, Table, Expression)
+  when is_atom(Module), is_pid(Pid), is_binary(Table), is_binary(Expression) ->
+    apply(Module, call, [Pid,?ERN_OUTPUT_TABLE_SELECT,[Table,Expression]]).

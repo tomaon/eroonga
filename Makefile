@@ -4,11 +4,31 @@
  GROONGA_HOME ?= /opt/groonga/release/latest
 
 #
+ CC = /opt/gnu/gcc/4.7.3/bin/gcc
+
+ CFLAGS =
+ CFLAGS += -std=c99
+#CFLAGS += -D__unix
+#CFLAGS += -D__STDC_FORMAT_MACROS -D__STDC_CONSTANT_MACROS
+ CFLAGS += -g
+ CFLAGS += -Wall
+ CFLAGS += -Wextra
+ CFLAGS += -Wstrict-prototypes
+ CFLAGS += -fPIC
+ CFLAGS += -fno-common
+
+ LDFLAGS  =
+
+#
  REBAR_BIN  = ./rebar
 
  REBAR_ENV  =
  REBAR_ENV += PATH=$(ERLANG_HOME)/bin:$(PATH)
  REBAR_ENV += ERL_LIB=..
+ REBAR_ENV += GROONGA_HOME="$(GROONGA_HOME)"
+ REBAR_ENV += CC="$(CC)"
+ REBAR_ENV += CFLAGS="$(CFLAGS)"
+ REBAR_ENV += LDFLAGS="$(LDFLAGS)"
 
  REBAR_OPT  =
 #REBAR_OPT += --verbose 3
@@ -23,6 +43,7 @@
  DIALYZER_OPT += --no_native
  DIALYZER_OPT += --plts $(ERLANG_HOME)/.dialyzer_plt $(PLT)
  DIALYZER_OPT += --src src
+ DIALYZER_OPT += -I deps
  DIALYZER_OPT += -I ..
 
 #
@@ -49,19 +70,21 @@ build_plt:
 dialyzer:
 	@$(ERLANG_HOME)/bin/dialyzer $(DIALYZER_OPT)
 
-shell:
+client driver: compile
 	@$(ERLANG_HOME)/bin/erl $(ERL_OPT) -config files/$@
 
 test: compile ct
 
 distclean: clean delete-deps
-	@-rm -r deps
+	@-rm -f deps $(PLT)
 
 #
-x1:
+x%: compile
 	@ERL_FLAGS="" $(ERLANG_HOME)/bin/escript escript/$@.escript
 #
-server:
-	$(GROONGA_HOME)/bin/groonga -p 10041 -d /tmp/groonga/x1
-client:
-	$(GROONGA_HOME)/bin/groonga -p 10041 -c 
+start:
+	$(GROONGA_HOME)/bin/groonga -p 10041 -d /tmp/groonga/x1 localhost
+stop:
+	$(GROONGA_HOME)/bin/groonga -p 10041 -c localhost shutdown
+data:
+	$(GROONGA_HOME)/bin/groonga -n /tmp/groonga/x3 < files/x3.txt
