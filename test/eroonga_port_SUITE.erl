@@ -21,49 +21,39 @@ groups() ->
     ].
 
 init_per_suite(Config) ->
-    {ok, Dir} = file:get_cwd(),
-    L = [
-         {path, filename:join([Dir,"..","..","priv","lib"])}
-        ],
-    case eroonga_driver:load(L) of
-        {ok, T} ->
-            [{driver,T}|Config];
-        {error, Reason} ->
-            ct:fail(Reason)
-    end.
+    _ = application:load(eroonga),
+    Config.
 
 end_per_suite(Config) ->
-    case erooga_driver:unload(?config(driver,Config)) of
-        ok ->
-            proplists:delete(driver, Config);
-        {error, Reason} ->
-            ct:fail(Reason)
-    end.
+    Config.
 
 init_per_group(_Group, Config) ->
-    L = [
-         {driver, ?config(driver,Config)},
-         {path, <<"/tmp/groonga/x3">>},
-         {options, [
-                    {encoding, utf8}
-                   ]}
-        ],
-    case eroonga_port:start_link(L) of
-        {ok, Pid} ->
-            [{pid,Pid}|Config];
-        {error, Reason} ->
-            ct:fail(Reason) % badarg, WHY??
-    end.
+    L = [ fun start/1 ],
+    lists:foldl(fun(E,A) -> E(A) end, Config, L).
 
 end_per_group(_Group, Config) ->
-    case erooga_port:stop(?config(pid,Config)) of
-        ok ->
-            proplists:delete(pid, Config);
-        {error, Reason} ->
-            ct:fail(Reason)
-    end.
+    L = [ fun stop/1 ],
+    lists:foldl(fun(E,A) -> E(A) end, Config, L).
 
 %% == group:  ==
 
 call_test(_Config) ->
     {skip, not_supported}.
+
+%% == ==
+
+start(Config) ->
+    case eroonga:start() of
+        ok ->
+            Config;
+        {error, Reason} ->
+            ct:fail(Reason)
+    end.
+
+stop(Config) ->
+    case eroonga:stop() of
+        ok ->
+            Config;
+        {error, Reason} ->
+            ct:fail(Reason)
+    end.
