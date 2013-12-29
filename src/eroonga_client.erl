@@ -1,5 +1,5 @@
 %% =============================================================================
-%% Copyright 2013 AONO Tomohiko
+%% Copyright 2013-2014 AONO Tomohiko
 %%
 %% This library is free software; you can redistribute it and/or
 %% modify it under the terms of the GNU Lesser General Public
@@ -30,7 +30,7 @@
 
 %% -- private --
 -record(state, {
-          handle :: tuple()
+          handle :: tuple() % eroonga_protocol_qgtp:handle()
          }).
 
 %% == public ==
@@ -112,7 +112,7 @@ cleanup(#state{handle=H}=S)
     ok = eroonga_protocol_qgtp:close(H),
     cleanup(S#state{handle = undefined});
 cleanup(#state{}) ->
-    flush().
+    eroonga_util:flush().
 
 setup([]) ->
     process_flag(trap_exit, true),
@@ -127,14 +127,12 @@ setup(Args, #state{handle=undefined}=S) ->
         ],
     case apply(eroonga_protocol_qgtp, connect, [L]) of
         {ok, Handle} ->
-            setup(Args, S#state{handle = Handle});
+            {ok, S#state{handle = Handle}};
         {error, Reason, Handle} ->
             {error, Reason, S#state{handle = Handle}}
-    end;
-setup(_Args, #state{}=S) ->
-    {ok, S}.
+    end.
 
-%% == private ==
+%% == private: etc ==
 
 default_options() ->
     [
@@ -146,6 +144,3 @@ default_options() ->
      {recbuf, 146988},
      {sndbuf, 146988}
     ].
-
-flush() ->
-    receive _ -> flush() after 0 -> ok end.

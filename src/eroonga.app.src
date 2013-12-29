@@ -1,33 +1,12 @@
 %%-*- mode: erlang -*-
 {application, eroonga,
  [{description, "eroonga: erlang client for groonga (http://groonga.org/)."},
-  {vsn, "0.1"},
+  {vsn, {cmd, "cat VERSION"}},
   {modules, []},
   {registered, [eroonga_sup]},
   {included_applications, [poolboy]},
   {applications, [kernel, stdlib]},
   {env, [
-         {poolboy, [
-                    {eroonga_pool,
-                     [
-                      {size, 1},
-                      {max_overflow, 3}
-                     ],
-                     [
-                      {address, "localhost"},
-                      {port, 10041},
-                      {options, [
-                                 {active, false},
-                                 {buffer, 293976},
-                                 {keepalive, true},
-                                 {mode, binary},
-                                 {packet, raw},
-                                 {recbuf, 146988},
-                                 {sndbuf, 146988}
-                                ]},
-                      {timeout, 10}
-                     ]}
-                   ]}
         ]},
   {mod, {eroonga_app, []}}
  ]}.

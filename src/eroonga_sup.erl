@@ -1,5 +1,5 @@
 %% =============================================================================
-%% Copyright 2013 AONO Tomohiko
+%% Copyright 2013-2014 AONO Tomohiko
 %%
 %% This library is free software; you can redistribute it and/or
 %% modify it under the terms of the GNU Lesser General Public
@@ -17,6 +17,8 @@
 
 -module(eroonga_sup).
 
+-include("eroonga_internal.hrl").
+
 %% -- public --
 -export([start_link/2, stop/1]).
 -export([find/2]).
@@ -24,13 +26,6 @@
 %% -- behaviour: supervisor --
 -behaviour(supervisor).
 -export([init/1]).
-
--type startlink_ret() :: {ok,pid()}|ignore|{error,_}.
--type sup_name() :: {local,atom()}|{global,atom()}.
--type sup_ref() :: atom()|{atom(),node()}|{global,atom()}|pid().
-
-%% -- private --
--type stop_ret() :: ok.
 
 %% == public ==
 
