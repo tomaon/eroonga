@@ -17,7 +17,7 @@
 
 -module(eroonga_protocol_qgtp).
 
--include("eroonga_internal.hrl").
+-include("internal.hrl").
 
 %% -- public --
 -export([connect/1, close/1]).

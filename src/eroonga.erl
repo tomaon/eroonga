@@ -17,10 +17,10 @@
 
 -module(eroonga).
 
--include("eroonga_internal.hrl").
+-include("internal.hrl").
 
-%% -- public: application --
--export([start/0, stop/0, get_client_version/0]).
+%% -- public --
+-export([start/0, stop/0, version/0]).
 
 %% -- public: pool --
 -export([connect/1, close/2]).
@@ -35,16 +35,16 @@
 
 -spec start() -> ok|{error,_}.
 start() ->
-    ok = lists:foreach(fun application:start/1, eroonga_app:deps()),
+    ok = lists:foreach(fun application:start/1, baseline_app:deps(?MODULE)),
     application:start(?MODULE).
 
 -spec stop() -> ok|{error,_}.
 stop() ->
     application:stop(?MODULE).
 
--spec get_client_version() -> {ok,[non_neg_integer()]}.
-get_client_version() ->
-    {ok, eroonga_app:version()}.
+-spec version() -> [non_neg_integer()].
+version() ->
+    baseline_app:version(?MODULE).
 
 %% == public: pool ==
 

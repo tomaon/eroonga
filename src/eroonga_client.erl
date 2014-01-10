@@ -17,7 +17,7 @@
 
 -module(eroonga_client).
 
--include("eroonga_internal.hrl").
+-include("internal.hrl").
 
 %% -- public --
 -export([start_link/1, stop/1]).
@@ -112,7 +112,7 @@ cleanup(#state{handle=H}=S)
     ok = eroonga_protocol_qgtp:close(H),
     cleanup(S#state{handle = undefined});
 cleanup(#state{}) ->
-    eroonga_util:flush().
+    baseline:flush().
 
 setup([]) ->
     process_flag(trap_exit, true),
