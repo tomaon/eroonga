@@ -1,6 +1,6 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
-%%! -pa ebin -pa deps/poolboy/ebin -pa deps/jsonx/ebin -config files/driver
+%%! -pa ebin -pa deps/baseline/ebin -pa deps/poolboy/ebin -pa deps/jsonx/ebin -config files/driver
 
 run(0, Pid) ->
     L = [
@@ -21,7 +21,7 @@ run(pool) ->
     end;
 run(direct) ->
     io:format("run: direct~n"),
-    case eroonga_driver:load([{name,"eroonga_drv"}]) of
+    case baseline_port:load([{name,"eroonga_drv"}]) of
         {ok, T} ->
             L = [
                  {driver,T},
@@ -47,7 +47,7 @@ run(direct) ->
                 {error, Reason} ->
                     io:format("ERROR: ~p (port)~n", [Reason])
             end,
-            eroonga_driver:unload(T);
+            baseline_port:unload(T);
         {error, Reason} ->
             io:format("ERROR: ~p (driver)~n", [Reason])
     end.
