@@ -17,7 +17,7 @@
 
 -module(eroonga_port).
 
--include("eroonga_internal.hrl").
+-include("internal.hrl").
 
 %% -- public --
 -export([start_link/1, stop/1]).
@@ -76,7 +76,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 handle_call({command,Command,Args}, From, #state{port=P,assigned=undefined}=S)
   when is_integer(Command), is_list(Args)->
-    case eroonga_driver:command(P, Command, Args) of
+    case baseline_port:command(P, Command, Args) of
         ok ->
             {noreply, S#state{assigned = From}};
         {error, Reason} ->
@@ -117,10 +117,10 @@ handle_info(_Info, State) ->
 
 cleanup(#state{port=P}=S)
   when undefined =/= P ->
-    _ = eroonga_driver:close(P),
+    _ = baseline_port:close(P),
     cleanup(S#state{port = undefined});
 cleanup(#state{}) ->
-    eroonga_util:flush().
+    baseline:flush().
 
 setup([]) ->
     _ = process_flag(trap_exit, true),
@@ -128,7 +128,7 @@ setup([]) ->
 
 setup({driver,Term}, #state{port=undefined}=S)
   when is_tuple(Term) ->
-    case eroonga_driver:open(Term) of
+    case baseline_port:open(Term) of
         {ok, Port} ->
             S#state{port = Port};
         {error, Reason} ->
@@ -140,7 +140,7 @@ setup({path,Term}, #state{port=P,path=undefined}=S)
               is_list(Term)   -> list_to_binary(Term);
               true -> throw({badarg,path})
            end,
-    case eroonga_driver:control(P, ?ERN_CONTROL_DB_OPEN, [Path]) of
+    case baseline_port:control(P, ?ERN_CONTROL_DB_OPEN, [Path]) of
         ok ->
             S#state{path = Path};
         {error, Reason} ->
@@ -151,7 +151,7 @@ setup({options,Term}, #state{port=P,path=D}=S)
     Args = if is_list(Term) -> proplists:unfold(Term);
               true -> throw({badarg,options})
            end,
-    case eroonga_driver:control(P, ?ERN_CONTROL_SET_OPTIONS, Args) of
+    case baseline_port:control(P, ?ERN_CONTROL_SET_OPTIONS, Args) of
         ok ->
             S;
         {error, Reason} ->
