@@ -17,7 +17,18 @@
 
 -module(eroonga_util).
 
+-include("eroonga_internal.hrl").
+
+%% -- public --
+-export([except/2]).
 -export([flush/0]).
+
+%% == public ==
+
+-spec except([property()],[property()]) -> [property()].
+except(List1, List2) ->
+    Keys = proplists:get_keys(List1),
+    lists:filter(fun({K,_}) -> not(lists:member(K,Keys)) end, List2).
 
 -spec flush() -> ok.
 flush() ->
