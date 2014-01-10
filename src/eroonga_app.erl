@@ -21,11 +21,17 @@
 
 %% -- public --
 -export([checkin/2, checkout/3]).
--export([env/0, deps/0, version/0]).
+-export([deps/0, env/0, version/0]).
 
 %% -- behaviour: application --
 -behaviour(application).
 -export([start/2, stop/1]).
+
+%% -- private --
+-record(state, {
+          driver :: tuple(), % eroonga_driver:handle()
+          sup :: pid()
+         }).
 
 %% == public ==
 
@@ -54,37 +60,27 @@ checkout(Pool, Block, Timeout)
             end
     end.
 
--spec env() ->[property()].
-env() ->
-    _ = application:load(eroonga),
-    lists:sort(application:get_all_env(eroonga)).
-
 -spec deps() -> [atom()].
 deps() ->
-    _ = application:load(eroonga),
-    {ok, List} = application:get_key(eroonga, applications),
-    lists:foldl(fun proplists:delete/2, List, [kernel,stdlib]).
+    deps(app()).
+
+-spec env() ->[property()].
+env() ->
+    env(app()).
 
 -spec version() -> [non_neg_integer()].
 version() ->
-    _ = application:load(eroonga),
-    {ok, List} = application:get_key(eroonga, vsn),
-    lists:map(fun list_to_integer/1, string:tokens(List, ".")).
+    version(app()).
 
 %% == behaviour: application ==
 
--record(state, {
-          driver :: tuple(), % eroonga_driver:handle()
-          sup :: pid()
-         }).
-
 start(_StartType, StartArgs) ->
-    try lists:foldl(fun setup/2, setup(StartArgs), env()) of
+    try lists:foldl(fun setup/2, #state{}, merge(env(),StartArgs)) of
         #state{sup=P}=S ->
             {ok, P, S}
     catch
         {Reason, State} ->
-            cleanup(State),
+            ok = cleanup(State),
             {error, Reason}
     end.
 
@@ -103,9 +99,6 @@ cleanup(#state{driver=D}=S)
     cleanup(S#state{driver = undefined});
 cleanup(#state{}) ->
     eroonga_util:flush().
-
-setup([]) ->
-    #state{}.
 
 setup({driver,Term}, #state{driver=undefined}=S)
   when is_list(Term) ->
@@ -130,3 +123,26 @@ setup({poolboy,Term}, #state{driver=D,sup=undefined}=S)
     end;
 setup(_Ignore, #state{}=S) ->
     S.
+
+%% == private ==
+
+app() ->
+    list_to_atom(filename:basename(?MODULE_STRING, "_app")).
+
+deps(App) ->
+    _ = application:load(App),
+    {ok, List} = application:get_key(App, applications),
+    lists:foldl(fun proplists:delete/2, List, [kernel,stdlib]).
+
+env(App) ->
+    _ = application:load(App),
+    List = application:get_all_env(App),
+    lists:foldl(fun proplists:delete/2, List, [included_applications]).
+
+merge(List1, List2) ->
+    List1 ++ eroonga_util:except(List1, List2).
+
+version(App) ->
+    _ = application:load(App),
+    {ok, List} = application:get_key(App, vsn),
+    lists:map(fun list_to_integer/1, string:tokens(List, ".")).
