@@ -62,7 +62,7 @@ checkout(Pool, Block, Timeout)
 %% == behaviour: application ==
 
 start(_StartType, StartArgs) ->
-    try lists:foldl(fun setup/2, #state{}, env(StartArgs)) of
+    try lists:foldl(fun setup/2, setup(), env(StartArgs)) of
         #state{sup=P}=S ->
             {ok, P, S}
     catch
@@ -86,6 +86,9 @@ cleanup(#state{handle=H}=S)
     cleanup(S#state{handle = undefined});
 cleanup(#state{}) ->
     baseline:flush().
+
+setup() ->
+    #state{}.
 
 setup({handle,Term}, #state{handle=undefined}=S)
   when is_list(Term) ->
@@ -117,7 +120,4 @@ env(List) ->
     env(eroonga, List).
 
 env(App, List) ->
-    merge(baseline_app:env(App), List).
-
-merge(List1, List2) ->
-    List1 ++ baseline_lists:merge(List1, List2).
+    baseline_lists:merge(baseline_app:env(App), List).
