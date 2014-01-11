@@ -7,7 +7,7 @@ run(0, Pid) ->
          {0, [<<"Entries">>, <<"content @ 'fast'">>]},
          {99, []}
         ],
-    [ io:format("call(~p)=~p~n", [C,eroonga_port:call(Pid,C,A)]) || {C,A} <- L ].
+    [ io:format("call(~p)=~p~n", [C,eroonga_drv:call(Pid,C,A)]) || {C,A} <- L ].
 
 run(pool) ->
     io:format("run: pool~n"),
@@ -22,9 +22,8 @@ run(pool) ->
 run(direct) ->
     io:format("run: direct~n"),
     case baseline_port:load([{name,"eroonga_drv"}]) of
-        {ok, T} ->
+        {ok, H} ->
             L = [
-                 {driver,T},
                  {path,<<"/tmp/groonga/x3">>},
                  {options, [
                             %%{s, "zyx"},
@@ -39,22 +38,22 @@ run(direct) ->
                             {encoding, utf8}
                            ]}
                 ],
-            case eroonga_port:start_link(L) of
+            case eroonga_drv:start_link(H, L) of
                 {ok, Pid} ->
                     run(0, Pid),
                     timer:sleep(2000),
-                    eroonga_port:stop(Pid);
+                    eroonga_drv:stop(Pid);
                 {error, Reason} ->
                     io:format("ERROR: ~p (port)~n", [Reason])
             end,
-            baseline_port:unload(T);
+            baseline_port:unload(H);
         {error, Reason} ->
             io:format("ERROR: ~p (driver)~n", [Reason])
     end.
 
 main(_) ->
     L = [
-%        pool,
+         pool,
          direct
         ],
     [ run(A) || A <- L ].

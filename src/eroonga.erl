@@ -31,16 +31,15 @@
 %% -- public: driver --
 -export([select/3, select/4]).
 
-%% == public: application ==
+%% == public ==
 
 -spec start() -> ok|{error,_}.
 start() ->
-    ok = lists:foreach(fun application:start/1, baseline_app:deps(?MODULE)),
-    application:start(?MODULE).
+    baseline_app:start(?MODULE).
 
 -spec stop() -> ok|{error,_}.
 stop() ->
-    application:stop(?MODULE).
+    baseline_app:stop(?MODULE).
 
 -spec version() -> [non_neg_integer()].
 version() ->

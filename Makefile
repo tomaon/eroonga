@@ -87,4 +87,5 @@ start:
 stop:
 	$(GROONGA_HOME)/bin/groonga -p 10041 -c localhost shutdown
 data:
+	@mkdir -p /tmp/groonga
 	$(GROONGA_HOME)/bin/groonga -n /tmp/groonga/x3 < files/x3.txt
