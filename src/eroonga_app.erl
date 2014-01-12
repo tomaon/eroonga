@@ -90,7 +90,7 @@ cleanup(#state{}) ->
 setup() ->
     #state{}.
 
-setup({handle,Term}, #state{handle=undefined}=S)
+setup({driver,Term}, #state{handle=undefined}=S)
   when is_list(Term) ->
     case baseline_port:load(Term) of
         {ok, Handle} ->
@@ -103,7 +103,7 @@ setup({poolboy,Term}, #state{handle=H,sup=undefined}=S)
     T = {one_for_one, 0, timer:seconds(1)},
     L = [ poolboy:child_spec(Pool,
                              [{worker_module,Worker}|PoolArgs],
-                             [{driver,H}|WorkerArgs]
+                             [H|WorkerArgs]
                             ) || {Pool,PoolArgs,Worker,WorkerArgs} <- Term ],
     case baseline_sup:start_link({local,eroonga_sup}, {T,L}) of
         {ok, Pid} ->
