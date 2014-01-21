@@ -24,12 +24,12 @@
 
 %% -- behaviour: application --
 -behaviour(application).
--export([start/2, stop/1]).
+-export([start/2, prep_stop/1, stop/1]).
 
 %% -- private --
--record(state, {
-          handle :: tuple(), % baseline_port:handle()
-          sup :: pid()
+-record(wrapper, {
+          driver :: [atom()],
+          state :: tuple()
          }).
 
 %% == public ==
@@ -61,63 +61,61 @@ checkout(Pool, Block, Timeout)
 
 %% == behaviour: application ==
 
-start(_StartType, StartArgs) ->
-    try lists:foldl(fun setup/2, setup(), env(StartArgs)) of
-        #state{sup=P}=S ->
-            {ok, P, S}
+start(StartType, StartArgs) ->
+    L = args(StartArgs),
+    try lists:foldl(fun setup/2, setup(), proplists:get_value(resource,L,[])) of
+        #wrapper{}=W ->
+            case baseline_app:start(StartType, proplists:get_value(process,L,[])) of
+                {ok, Pid, State} ->
+                    {ok, Pid, W#wrapper{state = State}};
+                {error, Reason} ->
+                    ok = cleanup(W),
+                    {error, Reason}
+            end
     catch
-        {Reason, State} ->
-            ok = cleanup(State),
+        {Reason, #wrapper{}=W} ->
+            ok = cleanup(W),
             {error, Reason}
     end.
 
+
+prep_stop(#wrapper{state=S}=W) ->
+    _ = baseline_app:prep_stop(S),
+    ok = cleanup(W),
+    S.
+
 stop(State) ->
-    cleanup(State).
+    baseline_app:stop(State).
 
 %% == private: state ==
 
-cleanup(#state{sup=P}=S)
-  when undefined =/= P ->
-    _ = baseline_sup:stop(P),
-    cleanup(S#state{sup = undefined});
-cleanup(#state{handle=H}=S)
-  when undefined =/= H ->
-    _ = baseline_port:unload(H),
-    cleanup(S#state{handle = undefined});
-cleanup(#state{}) ->
-    baseline:flush().
+cleanup(#wrapper{driver=D}=W)
+  when undefined =/= D ->
+    [ baseline_drv:unload(E) || E <- D ],
+    cleanup(W#wrapper{driver = undefined});
+cleanup(#wrapper{}) ->
+    ok.
 
 setup() ->
-    #state{}.
+    #wrapper{driver = []}.
 
-setup({driver,Term}, #state{handle=undefined}=S)
-  when is_list(Term) ->
-    case baseline_port:load(Term) of
-        {ok, Handle} ->
-            S#state{handle = Handle};
+setup({driver,Term}, #wrapper{driver=D}=W) ->
+    Args = if is_list(Term) -> Term;
+              true -> throw({{badarg,driver},W})
+           end,
+    case baseline_drv:load(Args) of
+        ok ->
+            W#wrapper{driver = [proplists:get_value(name,Args)|D]};
         {error, Reason} ->
-            throw({Reason,S})
+            throw({Reason,W})
     end;
-setup({poolboy,Term}, #state{handle=H,sup=undefined}=S)
-  when is_list(Term), is_tuple(H) ->
-    T = {one_for_one, 0, timer:seconds(1)},
-    L = [ poolboy:child_spec(Pool,
-                             [{worker_module,Worker}|PoolArgs],
-                             [H|WorkerArgs]
-                            ) || {Pool,PoolArgs,Worker,WorkerArgs} <- Term ],
-    case baseline_sup:start_link({local,eroonga_sup}, {T,L}) of
-        {ok, Pid} ->
-            S#state{sup = Pid};
-        {error, Reason} ->
-            throw({Reason,S})
-    end;
-setup(_Ignore, #state{}=S) ->
-    S.
+setup(_Ignore, #wrapper{}=W) ->
+    W.
 
 %% == private ==
 
-env(List) ->
-    env(eroonga, List).
+args(List) ->
+    args(eroonga, List).
 
-env(App, List) ->
+args(App, List) ->
     baseline_lists:merge(baseline_app:env(App), List).
