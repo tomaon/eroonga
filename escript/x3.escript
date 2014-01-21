@@ -11,18 +11,24 @@ run(0, Pid) ->
 
 run(pool) ->
     io:format("run: pool~n"),
-    _ = eroonga:start(),
-    case eroonga:connect(N = eroonga_pool) of
-        {ok, Pid} ->
-            run(0, Pid),
-            ok = eroonga:close(N, Pid);
+    case eroonga:start() of
+        ok ->
+            case eroonga:connect(N = eroonga_pool) of
+                {ok, Pid} ->
+                    [ run(E,Pid) || E <- [0] ],
+                    ok = eroonga:close(N, Pid);
+                {error, Reason} ->
+                    io:format("ERROR: ~p~n", [Reason])
+            end,
+            _ = eroonga:stop();
         {error, Reason} ->
             io:format("ERROR: ~p~n", [Reason])
     end;
 run(direct) ->
     io:format("run: direct~n"),
-    case baseline_port:load([{name,"eroonga_drv"}]) of
-        {ok, H} ->
+    N = <<"eroonga_drv">>,
+    case baseline_drv:load([{name,N}]) of
+        ok ->
             L = [
                  {path,<<"/tmp/groonga/x3">>},
                  {options, [
@@ -38,15 +44,15 @@ run(direct) ->
                             {encoding, utf8}
                            ]}
                 ],
-            case eroonga_drv:start_link(H, L) of
+            case eroonga_drv:start_link(N, [], L) of
                 {ok, Pid} ->
-                    run(0, Pid),
-                    timer:sleep(2000),
+                    unlink(Pid),
+                    [ run(E,Pid) || E <- [0] ],
                     eroonga_drv:stop(Pid);
                 {error, Reason} ->
                     io:format("ERROR: ~p (port)~n", [Reason])
             end,
-            baseline_port:unload(H);
+            baseline_drv:unload(N);
         {error, Reason} ->
             io:format("ERROR: ~p (driver)~n", [Reason])
     end.

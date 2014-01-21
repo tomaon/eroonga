@@ -20,21 +20,20 @@
 -include("internal.hrl").
 
 %% -- public --
--export([start_link/2, stop/1]).
+-export([start_link/3, stop/1]).
 -export([call/3, call/4]).
 
-%% -- behaviour: poolboy_worker --
-%%ehaviour(poolboy_worker).
+%% -- callback: poolboy_worker --
 -export([start_link/1]).
 
 %% == public ==
 
--spec start_link(tuple(),[property()]) -> {ok,pid()}|{error,_}.
-start_link(Handle, Args)
-  when is_tuple(Handle), is_list(Args) ->
-    case baseline_drv:start_link([{handle,Handle}]) of
+-spec start_link(string()|binary(),[property()],[property()]) -> {ok,pid()}|{error,_}.
+start_link(Name, Settings, Options)
+  when is_list(Name), is_list(Settings), is_list(Options) ->
+    case baseline_drv:start_link(Name, Settings) of
         {ok, Pid} ->
-            try lists:foldl(fun setup/2, Pid, Args) of
+            try lists:foldl(fun setup/2, Pid, Options) of
                 Pid ->
                     {ok, Pid}
             catch
@@ -44,7 +43,10 @@ start_link(Handle, Args)
             end;
         {error, Reason} ->
             {error, Reason}
-    end.
+    end;
+start_link(Name, Settings, Options)
+  when is_binary(Name), is_list(Settings), is_list(Options) ->
+    start_link(binary_to_list(Name), Settings, Options).
 
 -spec stop(pid()) -> ok.
 stop(Pid)
@@ -62,11 +64,12 @@ call(Pid, Command, Args, Timeout)
   when is_pid(Pid), is_integer(Command), is_list(Args) ->
     baseline_drv:call(Pid, command, Command, Args, Timeout).
 
-%% == behaviour: poolboy_worker ==
+%% == callback: poolboy_worker ==
 
--spec start_link([property()]) -> {ok,pid()}|{error,_}.
-start_link([H|T]) ->
-    start_link(H, T).
+-spec start_link([term()]) -> {ok,pid()}|{error,_}.
+start_link(Args)
+  when is_list(Args), 3 =:= length(Args) ->
+    apply(?MODULE, start_link, Args).
 
 %% == private ==
 

@@ -1,15 +1,28 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
-%%! -pa ebin -pa deps/poolboy/ebin -pa deps/jsonx/ebin -config files/client -s eroonga
+%%! -pa ebin -pa deps/baseline/ebin -pa deps/poolboy/ebin -pa deps/jsonx/ebin -config files/client
 
-run(Pid) ->
+run(0, Pid) ->
     io:format("status=~p~n", [eroonga:command(Pid, <<"status">>)]).
 
-main(_) ->
-    case eroonga:connect(N = eroonga_pool) of
-        {ok, Pid} ->
-            run(Pid),
-            ok = eroonga:close(N, Pid);
+run(pool) ->
+    io:format("run: pool~n"),
+    case eroonga:start() of
+        ok ->
+            case eroonga:connect(N = eroonga_pool) of
+                {ok, Pid} ->
+                    [ run(E,Pid) || E <- [0] ],
+                    ok = eroonga:close(N, Pid);
+                {error, Reason} ->
+                    io:format("ERROR: ~p~n", [Reason])
+            end,
+            _ = eroonga:stop();
         {error, Reason} ->
             io:format("ERROR: ~p~n", [Reason])
     end.
+
+main(_) ->
+    L = [
+         pool
+        ],
+    [ run(A) || A <- L ].

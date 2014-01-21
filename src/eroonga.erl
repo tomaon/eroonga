@@ -20,7 +20,7 @@
 -include("internal.hrl").
 
 %% -- public --
--export([start/0, stop/0, version/0]).
+-export([start/0, start/1, stop/0, version/0]).
 
 %% -- public: pool --
 -export([connect/1, close/2]).
@@ -35,11 +35,16 @@
 
 -spec start() -> ok|{error,_}.
 start() ->
-    baseline_app:start(?MODULE).
+    start(temporary).
+
+-spec start(atom()) -> ok|{error,_}.
+start(Type)
+  when is_atom(Type) ->
+    baseline_app:ensure_start(?MODULE, Type).
 
 -spec stop() -> ok|{error,_}.
 stop() ->
-    baseline_app:stop(?MODULE).
+    application:stop(?MODULE).
 
 -spec version() -> [non_neg_integer()].
 version() ->
