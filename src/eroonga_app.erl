@@ -80,9 +80,9 @@ start(StartType, StartArgs) ->
 
 
 prep_stop(#wrapper{state=S}=W) ->
-    _ = baseline_app:prep_stop(S),
+    State = baseline_app:prep_stop(S),
     ok = cleanup(W),
-    S.
+    State.
 
 stop(State) ->
     baseline_app:stop(State).
