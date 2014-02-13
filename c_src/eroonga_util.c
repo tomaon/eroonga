@@ -1,18 +1,4 @@
 // =============================================================================
-// Copyright 2013-2014 AONO Tomohiko
-//
-// This library is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License version 2.1 as published by the Free Software Foundation.
-//
-// This library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-// Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License along with this library; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 // =============================================================================
 
 #include <string.h> // strlen
@@ -24,11 +10,20 @@
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
-extern void encode_errbuf(ei_x_buff *x, grn_ctx *ctx);
+static void encode_errbuf(ei_x_buff *x, grn_ctx *ctx) {
 
+  char buf[8];
+  sprintf(buf, "GRN%04d", ctx->rc);
 
-static void eroonga_decode_row(grn_ctx *ctx,
-                               grn_id id, grn_obj *column, grn_obj *value, ei_x_buff *x) {
+  ei_x_encode_tuple_header(x, 2);
+  ei_x_encode_atom(x, "error");
+  ei_x_encode_tuple_header(x, 2);
+  ei_x_encode_atom(x, buf);
+  ei_x_encode_string(x, ctx->errbuf);
+}
+
+static void encode_row(grn_ctx *ctx,
+                       grn_id id, grn_obj *column, grn_obj *value, ei_x_buff *x) {
 
   int n = grn_column_name(ctx, column, NULL, 0);
   char name[n];
@@ -71,8 +66,8 @@ static void eroonga_decode_row(grn_ctx *ctx,
   }
 }
 
-static void eroonga_decode_rows(grn_ctx *ctx, grn_obj *table,
-                                int n, grn_obj *columns[], grn_obj *expr, ei_x_buff *x) {
+static void encode_rows(grn_ctx *ctx, grn_obj *table,
+                        int n, grn_obj *columns[], grn_obj *expr, ei_x_buff *x) {
 
   grn_obj *tmp = grn_table_select(ctx, table, expr, NULL, GRN_OP_OR);
 
@@ -101,7 +96,7 @@ static void eroonga_decode_rows(grn_ctx *ctx, grn_obj *table,
 
           ei_x_encode_tuple_header(x, n);
           for (i = 0; i < n; i++) {
-            eroonga_decode_row(ctx, id, columns[i], &value, x);
+            encode_row(ctx, id, columns[i], &value, x);
           }
         }
       }
@@ -123,8 +118,7 @@ static void eroonga_decode_rows(grn_ctx *ctx, grn_obj *table,
   }
 }
 
-static void eroonga_get_columns(grn_ctx *ctx,
-                                grn_hash *hash, grn_obj *objs[], int size) {
+static void get_columns(grn_ctx *ctx, grn_hash *hash, grn_obj *objs[], int size) {
 
   grn_hash_cursor *hc = grn_hash_cursor_open(ctx, hash, NULL, 0, NULL, 0, 0, -1, 0);
 
@@ -144,7 +138,7 @@ static void eroonga_get_columns(grn_ctx *ctx,
   }
 }
 
-void eroonga_table_select(grn_ctx *ctx, const char *name, const char *str, ei_x_buff *x) {
+static void table_select(grn_ctx *ctx, const char *name, const char *str, ei_x_buff *x) {
 
   grn_obj *table = grn_ctx_get(ctx, name, strlen(name));
 
@@ -160,7 +154,7 @@ void eroonga_table_select(grn_ctx *ctx, const char *name, const char *str, ei_x_
       if (0 < n) {
 
         grn_obj *columns[n];
-        eroonga_get_columns(ctx, hash, columns, n);
+        get_columns(ctx, hash, columns, n);
 
         grn_obj *expr, *var;
         grn_expr_flags flags =
@@ -171,7 +165,7 @@ void eroonga_table_select(grn_ctx *ctx, const char *name, const char *str, ei_x_
         if (GRN_SUCCESS == grn_expr_parse(ctx, expr, str, strlen(str),
                                           NULL, GRN_OP_MATCH, GRN_OP_AND, flags)) {
 
-          eroonga_decode_rows(ctx, table, n, columns, expr, x);
+          encode_rows(ctx, table, n, columns, expr, x);
 
           grn_obj_unlink(ctx, var);
           grn_obj_unlink(ctx, expr);
@@ -193,4 +187,23 @@ void eroonga_table_select(grn_ctx *ctx, const char *name, const char *str, ei_x_
   } else {
     encode_errbuf(x, ctx);
   }
+}
+
+/*
+ */
+ERL_NIF_TERM eroonga_table_select(ErlNifEnv* env,
+                                  grn_ctx *ctx, const char *name, const char *expr) {
+  ei_x_buff x;
+  ei_x_new_with_version(&x);
+
+  table_select(ctx, name, expr, &x);
+
+  ERL_NIF_TERM term;
+  unsigned char *p = enif_make_new_binary(env, x.index, &term);
+
+  memcpy(p, x.buff, x.index);
+
+  ei_x_free(&x);
+
+  return term;
 }
