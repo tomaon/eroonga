@@ -20,9 +20,15 @@
 
 #include "groonga/groonga.h"
 
-#ifdef _TRACE
-#endif // _TRACE
+#include "erl_nif.h"
+
+// -- --
 
 #define UNUSED(p) (void)(p)
+
+// -- --
+
+extern ERL_NIF_TERM eroonga_table_select(ErlNifEnv* env,
+                                         grn_ctx *ctx, const char *name, const char *expr);
 
 #endif // EROONGA_H

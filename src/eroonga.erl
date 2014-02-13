@@ -22,14 +22,14 @@
 %% -- public --
 -export([start/0, start/1, stop/0, version/0]).
 
-%% -- public: pool --
--export([connect/1, close/2]).
-
 %% -- public: client --
+-export([connect/1, close/2]).
 -export([command/2, command/3]).
 
 %% -- public: driver --
--export([select/3, select/4]).
+-export([new/0]).
+-export([open/2]).
+-export([select/3]).
 
 %% == public ==
 
@@ -50,7 +50,7 @@ stop() ->
 version() ->
     baseline_app:version(?MODULE).
 
-%% == public: pool ==
+%% == public: client ==
 
 -spec connect(atom()) -> {ok,pid()}|{error,_}.
 connect(Pool)
@@ -72,7 +72,6 @@ close(Pool, Worker)
   when is_atom(Pool), is_pid(Worker) ->
     eroonga_app:checkin(Pool, Worker).
 
-%% == public: client ==
 
 -spec command(pid(),binary()) -> {ok,term()}|{error,_}.
 command(Pid, Binary)
@@ -87,12 +86,18 @@ command(Module, Pid, Binary)
 
 %% == public: driver ==
 
--spec select(pid(),binary(),binary()) -> {ok,term()}|{error,_}.
-select(Pid, Table, Expression)
-  when is_pid(Pid), is_binary(Table), is_binary(Expression) ->
-    select(eroonga_port, Pid, Table, Expression). % TODO
+-spec new() -> {ok,tuple()}|{error,_}.
+new() ->
+    eroonga_nif:new().
 
--spec select(module(),pid(),binary(),binary()) -> {ok,term()}|{error,_}.
-select(Module, Pid, Table, Expression)
-  when is_atom(Module), is_pid(Pid), is_binary(Table), is_binary(Expression) ->
-    apply(Module, call, [Pid,?ERN_OUTPUT_TABLE_SELECT,[Table,Expression]]).
+
+-spec open(tuple(),string()) -> ok|{error,_}.
+open(Handle, Path)
+  when is_tuple(Handle), is_list(Path) ->
+    eroonga_nif:db_open(Handle, Path).
+
+
+-spec select(tuple(),string(),string()) -> {ok,term()}|{error,_}.
+select(Handle, Table, Expr)
+  when is_tuple(Handle), is_list(Table), is_list(Expr) ->
+    eroonga_nif:table_select(Handle, Table, Expr).

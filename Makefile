@@ -3,7 +3,7 @@
 
  GROONGA_HOME ?= /opt/groonga/release/latest
 
- CC ?= /opt/gnu/gcc/4.7.3/bin/gcc
+ CC ?= /opt/gnu/gcc/4.7.3/bin/g++
 
 #
  REBAR_BIN  = ./rebar
@@ -12,14 +12,14 @@
  REBAR_ENV += PATH=$(ERLANG_HOME)/bin:$(PATH)
  REBAR_ENV += GROONGA_HOME="$(GROONGA_HOME)"
  REBAR_ENV += CC="$(CC)"
- REBAR_ENV += ERL_LIBS=..
+ REBAR_ENV += ERL_LIBS=..:deps
 
  REBAR_OPT  =
 #REBAR_OPT += --verbose 3
 
 #
  ERL_ENV  =
- ERL_ENV += ERL_LIBS=..:deps:deps/baseline/sub_dirs
+ ERL_ENV += ERL_LIBS=..:deps
 
  ERL_OPT  =
  ERL_OPT += -config priv/conf/$(1)
@@ -31,10 +31,9 @@
  DIALYZER_OPT += --plts $(ERLANG_HOME)/.dialyzer_plt $(PLT)
  DIALYZER_OPT += --src src
  DIALYZER_OPT += -I deps
- DIALYZER_OPT += -I ..
 
 #
-default: compile
+default: all
 
 #
 delete-deps get-deps:
@@ -71,7 +70,7 @@ client driver: compile
 	@$(ERL_ENV) $(ERLANG_HOME)/bin/erl $(call ERL_OPT,$@)
 
 x%: compile
-	@$(ERL_ENV) $(ERLANG_HOME)/bin/escript escript/$@.escript
+	@$(ERL_ENV) $(ERLANG_HOME)/bin/escript priv/escript/$@.escript
 #
 start:
 	$(GROONGA_HOME)/bin/groonga -p 10041 -d /tmp/groonga/x1 localhost
@@ -79,4 +78,4 @@ stop:
 	$(GROONGA_HOME)/bin/groonga -p 10041 -c localhost shutdown
 data:
 	@mkdir -p /tmp/groonga
-	$(GROONGA_HOME)/bin/groonga -n /tmp/groonga/x3 < files/x3.txt
+	$(GROONGA_HOME)/bin/groonga -n /tmp/groonga/x3 < priv/data/x3.txt

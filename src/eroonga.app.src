@@ -1,12 +1,13 @@
-%%-*- mode: erlang -*-
+%% -*- erlang -*-
 {application, eroonga,
- [{description, "eroonga: erlang client for groonga (http://groonga.org/)."},
+ [
+  {description, "eroonga: erlang client for groonga (http://groonga.org/)."},
   {vsn, {cmd, "cat VERSION"}},
-  {modules, []},
   {registered, [eroonga_sup]},
   {included_applications, [poolboy]},
-  {applications, [kernel, stdlib]},
+  {applications, [kernel,stdlib]},
   {env, [
         ]},
-  {mod, {eroonga_app, []}}
+  {mod, {baseline_app, [
+                       ]}}
  ]}.
