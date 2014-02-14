@@ -19,7 +19,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "eroonga.h"
+#include "internal.h"
 
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
@@ -84,7 +84,7 @@ static ERL_NIF_TERM db_open_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM *ar
   unsigned path_size;
 
   if (2 == argc &&
-      enif_is_binary(env, argv[0]) && // resource
+      enif_is_binary(env, argv[0]) &&
       enif_is_list(env, argv[1]) && enif_get_list_length(env, argv[1], &path_size)) {
 
     eroonga_nif_t *handle = NULL;
@@ -112,7 +112,7 @@ static ERL_NIF_TERM table_select_nif(ErlNifEnv *env, int argc, const ERL_NIF_TER
   unsigned name_size, expr_size;
 
   if (3 == argc &&
-      enif_is_binary(env, argv[0]) && // resource
+      enif_is_binary(env, argv[0]) &&
       enif_is_list(env, argv[1]) && enif_get_list_length(env, argv[1], &name_size) &&
       enif_is_list(env, argv[2]) && enif_get_list_length(env, argv[2], &expr_size)) {
 
@@ -134,9 +134,8 @@ static ERL_NIF_TERM table_select_nif(ErlNifEnv *env, int argc, const ERL_NIF_TER
 
 static ERL_NIF_TERM new_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM *argv) {
 
-  UNUSED(argv);
-
-  if (0 == argc) {
+  if (1 == argc &&
+      enif_is_empty_list(env, argv[0])) {
 
     ErlNifResourceType *type = (ErlNifResourceType *)enif_priv_data(env);
     eroonga_nif_t *obj = (eroonga_nif_t *)enif_alloc_resource(type, sizeof(eroonga_nif_t));
@@ -170,8 +169,6 @@ static void dtor(ErlNifEnv* env, void* obj) {
 
   UNUSED(env);
 
-  printf("dtor\r\n");
-
   eroonga_nif_t *type = (eroonga_nif_t *)obj;
 
   if (NULL != type->ctx) {
@@ -184,14 +181,16 @@ static void dtor(ErlNifEnv* env, void* obj) {
 // -----------------------------------------------------------------------------
 
 static ErlNifFunc funcs[] = {
-  {"new_nif", 0, new_nif},
+  {"new_nif", 1, new_nif},
   {"db_open_nif", 2, db_open_nif},
   {"table_select_nif", 3, table_select_nif},
 };
 
 static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info) {
 
-  UNUSED(env), UNUSED(load_info);
+  if (!enif_is_empty_list(env, load_info)) {
+    return EINVAL;
+  }
 
   ErlNifResourceType *type =
     enif_open_resource_type(env, NULL, "eroonga_nif_t", dtor, ERL_NIF_RT_CREATE, NULL);
@@ -201,7 +200,7 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info) {
   }
 
   if (GRN_SUCCESS != grn_init()) {
-    return ECONNREFUSED; // TODO
+    return ECONNREFUSED;
   }
 
   *priv_data = type;
@@ -209,9 +208,19 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info) {
   return 0;
 }
 
+static int upgrade(ErlNifEnv* env, void** priv_data,
+                   void** old_priv_data, ERL_NIF_TERM load_info) {
+
+  UNUSED(env), UNUSED(load_info);
+
+  *priv_data = *old_priv_data;
+
+  return 0;
+}
+
 static void unload(ErlNifEnv* env, void* priv_data) {
 
-  UNUSED(priv_data);
+  UNUSED(env), UNUSED(priv_data);
 
   grn_fin();
 
@@ -220,4 +229,4 @@ static void unload(ErlNifEnv* env, void* priv_data) {
 
 /*
  */
-ERL_NIF_INIT(eroonga_nif, funcs, load, NULL, NULL, unload);
+ERL_NIF_INIT(eroonga_nif, funcs, load, NULL, upgrade, unload);

@@ -32,20 +32,22 @@
 
 -type(eroonga_nif() :: #eroonga_nif{}).
 
+-define(APP, eroonga).
+
 %% == public ==
 
 -on_load(on_load/0).
 
 -spec on_load() -> ok|{error,_}.
 on_load() ->
-    Path = filename:join([lib_dir(?MODULE), ?MODULE_STRING]),
+    Path = filename:join([baseline_app:lib_dir(?APP),?MODULE_STRING]),
     LoadInfo = [],
     erlang:load_nif(Path, LoadInfo).
 
 
 -spec new() -> {ok,eroonga_nif()}|{error,_}.
 new() ->
-    case new_nif() of
+    case new_nif([]) of
         {ok, Binary} ->
             {ok, #eroonga_nif{handle = Binary}};
         {error, Reason} ->
@@ -66,7 +68,7 @@ table_select(#eroonga_nif{handle=H}, Table, Expr)
 
 %% == private: nif ==
 
-new_nif() ->
+new_nif(_Args) ->
     erlang:nif_error(not_loaded).
 
 db_open_nif(_Handle, _Path) ->
@@ -74,17 +76,3 @@ db_open_nif(_Handle, _Path) ->
 
 table_select_nif(_Handle, _Table, _Expr) ->
     erlang:nif_error(not_loaded).
-
-%% == private ==
-
-lib_dir(Application) ->
-    filename:join(lib_dir(Application,priv), "lib").
-
-lib_dir(Application, SubDir) ->
-    case code:lib_dir(Application, SubDir) of
-        {error, bad_name} ->
-            {ok, Dir} = file:get_cwd(),
-            filename:join(Dir, atom_to_list(SubDir));
-        Dir ->
-            Dir
-    end.

@@ -65,12 +65,12 @@ connect(Pool, Block)
 -spec connect(atom(),boolean(),timeout()) -> {ok,pid()}|{error,_}.
 connect(Pool, Block, Timeout)
   when is_atom(Pool), is_boolean(Block) ->
-    eroonga_app:checkout(Pool, Block, Timeout).
+    checkout(Pool, Block, Timeout).
 
 -spec close(atom(),pid()) -> ok|{error,_}.
 close(Pool, Worker)
   when is_atom(Pool), is_pid(Worker) ->
-    eroonga_app:checkin(Pool, Worker).
+    checkin(Pool, Worker).
 
 
 -spec command(pid(),binary()) -> {ok,term()}|{error,_}.
@@ -101,3 +101,26 @@ open(Handle, Path)
 select(Handle, Table, Expr)
   when is_tuple(Handle), is_list(Table), is_list(Expr) ->
     eroonga_nif:table_select(Handle, Table, Expr).
+
+%% == private ==
+
+checkin(Pool, Worker) ->
+    case baseline_sup:find(eroonga_sup, Pool) of
+        undefined ->
+            {error, badarg};
+        Child ->
+            poolboy:checkin(Child, Worker)
+    end.
+
+checkout(Pool, Block, Timeout) ->
+    case baseline_sup:find(eroonga_sup, Pool) of
+        undefined ->
+            {error, badarg};
+        Child ->
+            case poolboy:checkout(Child, Block, Timeout) of
+                full ->
+                    {error, full};
+                Pid ->
+                    {ok, Pid}
+            end
+    end.

@@ -1,0 +1,7 @@
+%% -*- erlang -*-
+{incl_mods, [
+%            eroonga
+%            eroonga_client
+             eroonga_nif
+%            eroonga_protocol_qgtp
+            ]}.
