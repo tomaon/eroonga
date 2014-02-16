@@ -12,14 +12,14 @@
  REBAR_ENV += PATH=$(ERLANG_HOME)/bin:$(PATH)
  REBAR_ENV += GROONGA_HOME="$(GROONGA_HOME)"
  REBAR_ENV += CC="$(CC)"
- REBAR_ENV += ERL_LIBS=..:deps
+ REBAR_ENV += ERL_LIBS=deps:..
 
  REBAR_OPT  =
 #REBAR_OPT += --verbose 3
 
 #
  ERL_ENV  =
- ERL_ENV += ERL_LIBS=..:deps
+ ERL_ENV += ERL_LIBS=deps:..
 
  ERL_OPT  =
  ERL_OPT += -config priv/conf/$(1)

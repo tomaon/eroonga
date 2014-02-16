@@ -33,6 +33,17 @@ struct _eroonga_nif_t {
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
+static eroonga_nif_t *alloc_resource(ErlNifEnv *env, ERL_NIF_TERM term, nif_t **objp) {
+  ErlNifResourceType *type = (ErlNifResourceType *)enif_priv_data(env);
+  return enif_alloc_resource(type, sizeof(eroonga_nif_t));
+}
+
+static void release_resource(eroonga_nif_t **resource) {
+  enif_release_resource(*resource);
+  *resource = NULL;
+}
+
+
 static int get_resource(ErlNifEnv *env, ERL_NIF_TERM term, eroonga_nif_t **objp) {
   ErlNifResourceType *type = (ErlNifResourceType *)enif_priv_data(env);
   return enif_get_resource(env, term, type, (void **)objp);
@@ -137,12 +148,11 @@ static ERL_NIF_TERM new_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM *argv) 
   if (1 == argc &&
       enif_is_empty_list(env, argv[0])) {
 
-    ErlNifResourceType *type = (ErlNifResourceType *)enif_priv_data(env);
-    eroonga_nif_t *obj = (eroonga_nif_t *)enif_alloc_resource(type, sizeof(eroonga_nif_t));
+    eroonga_nif_t *resource = alloc_resource(env);
 
-    if (NULL != obj) {
+    if (NULL != resource) {
 
-      obj->ctx = NULL;
+      resource->ctx = NULL;
 
     } else {
       return make_error(env, "enomem");
@@ -153,13 +163,18 @@ static ERL_NIF_TERM new_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM *argv) 
 
     if (NULL != ctx) {
 
-      obj->ctx = ctx;
+      resource->ctx = ctx;
 
     } else {
       return make_error(env, "enomem");
     }
 
-    return make_tuple2(env, make_atom(env, "ok"), make_resource(env, obj));
+    ERL_NIF_TERM term =
+      make_tuple2(env, make_atom(env, "ok"), make_resource(env, resource));
+
+    relase_resource(&resource);
+
+    return term;
   }
 
   return make_error(env, "badarg");
@@ -169,11 +184,11 @@ static void dtor(ErlNifEnv* env, void* obj) {
 
   UNUSED(env);
 
-  eroonga_nif_t *type = (eroonga_nif_t *)obj;
+  eroonga_nif_t *resource = (eroonga_nif_t *)obj;
 
-  if (NULL != type->ctx) {
-    grn_ctx_close(type->ctx);
-    type->ctx = NULL;
+  if (NULL != resource->ctx) {
+    grn_ctx_close(resource->ctx);
+    resource->ctx = NULL;
   }
 }
 
