@@ -21,13 +21,13 @@
 
 %% -- public --
 -export([on_load/0]).
--export([new/0]).
+-export([new/0, delete/1]).
 -export([db_open/2]).
 -export([table_select/3]).
 
 %% -- private --
 -record(eroonga_nif, {
-          handle :: binary()
+          resource :: binary()
          }).
 
 -type(eroonga_nif() :: #eroonga_nif{}).
@@ -48,22 +48,28 @@ on_load() ->
 -spec new() -> {ok,eroonga_nif()}|{error,_}.
 new() ->
     case new_nif([]) of
-        {ok, Binary} ->
-            {ok, #eroonga_nif{handle = Binary}};
+        {ok, Resource} ->
+            {ok, #eroonga_nif{resource = Resource}};
         {error, Reason} ->
             {error, Reason}
     end.
 
+-spec delete(eroonga_nif()) -> ok|{error,_}.
+delete(#eroonga_nif{resource=R})
+  when is_binary(R) ->
+    delete_nif(R).
+
+
 -spec db_open(eroonga_nif(),string()) -> ok|{error,_}.
-db_open(#eroonga_nif{handle=H}, Path)
-  when is_binary(H), is_list(Path) ->
-    db_open_nif(H, Path).
+db_open(#eroonga_nif{resource=R}, Path)
+  when is_binary(R), is_list(Path) ->
+    db_open_nif(R, Path).
 
 
 -spec table_select(eroonga_nif(),string(),string()) -> {ok,term()}|{error,_}.
-table_select(#eroonga_nif{handle=H}, Table, Expr)
-  when is_binary(H), is_list(Table), is_list(Expr) ->
-    binary_to_term(table_select_nif(H, Table, Expr)).
+table_select(#eroonga_nif{resource=R}, Table, Expr)
+  when is_binary(R), is_list(Table), is_list(Expr) ->
+    binary_to_term(table_select_nif(R, Table, Expr)).
 
 
 %% == private: nif ==
@@ -71,8 +77,12 @@ table_select(#eroonga_nif{handle=H}, Table, Expr)
 new_nif(_Args) ->
     erlang:nif_error(not_loaded).
 
-db_open_nif(_Handle, _Path) ->
+delete_nif(_Resource) ->
     erlang:nif_error(not_loaded).
 
-table_select_nif(_Handle, _Table, _Expr) ->
+
+db_open_nif(_Resource, _Path) ->
+    erlang:nif_error(not_loaded).
+
+table_select_nif(_Resource, _Table, _Expr) ->
     erlang:nif_error(not_loaded).

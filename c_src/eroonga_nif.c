@@ -38,6 +38,11 @@ static eroonga_nif_t *alloc_resource(ErlNifEnv *env) {
   return enif_alloc_resource(type, sizeof(eroonga_nif_t));
 }
 
+static void release_resource(eroonga_nif_t **resource) {
+  enif_release_resource(*resource);
+  *resource = NULL;
+}
+
 
 static int get_resource(ErlNifEnv *env, ERL_NIF_TERM term, eroonga_nif_t **objp) {
   ErlNifResourceType *type = (ErlNifResourceType *)enif_priv_data(env);
@@ -170,6 +175,24 @@ static ERL_NIF_TERM new_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM *argv) 
   return make_error(env, "badarg");
 }
 
+static ERL_NIF_TERM delete_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM *argv) {
+
+  if (1 == argc &&
+      enif_is_binary(env, argv[0])) {
+
+    eroonga_nif_t *resource = NULL;
+
+    if (get_resource(env, argv[0], &resource)) {
+
+      release_resource(&resource);
+
+      return make_atom(env, "ok");
+    }
+  }
+
+  return make_error(env, "badarg");
+}
+
 static void dtor(ErlNifEnv *env, void *obj) {
 
   UNUSED(env);
@@ -187,6 +210,7 @@ static void dtor(ErlNifEnv *env, void *obj) {
 
 static ErlNifFunc funcs[] = {
   {"new_nif", 1, new_nif},
+  {"delete_nif", 1, delete_nif},
   {"db_open_nif", 2, db_open_nif},
   {"table_select_nif", 3, table_select_nif},
 };

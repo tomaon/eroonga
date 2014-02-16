@@ -27,7 +27,7 @@
 -export([command/2, command/3]).
 
 %% -- public: driver --
--export([new/0]).
+-export([new/0, delete/1]).
 -export([open/2]).
 -export([select/3]).
 
@@ -90,17 +90,21 @@ command(Module, Pid, Binary)
 new() ->
     eroonga_nif:new().
 
+-spec delete(tuple()) -> ok.
+delete(Resource) ->
+    eroonga_nif:delete(Resource).
+
 
 -spec open(tuple(),string()) -> ok|{error,_}.
-open(Handle, Path)
-  when is_tuple(Handle), is_list(Path) ->
-    eroonga_nif:db_open(Handle, Path).
+open(Resource, Path)
+  when is_tuple(Resource), is_list(Path) ->
+    eroonga_nif:db_open(Resource, Path).
 
 
 -spec select(tuple(),string(),string()) -> {ok,term()}|{error,_}.
-select(Handle, Table, Expr)
-  when is_tuple(Handle), is_list(Table), is_list(Expr) ->
-    eroonga_nif:table_select(Handle, Table, Expr).
+select(Resource, Table, Expr)
+  when is_tuple(Resource), is_list(Table), is_list(Expr) ->
+    eroonga_nif:table_select(Resource, Table, Expr).
 
 %% == private ==
 
