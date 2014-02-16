@@ -19,7 +19,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "internal.h"
+#include "eroonga.h"
 
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
@@ -33,14 +33,9 @@ struct _eroonga_nif_t {
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
-static eroonga_nif_t *alloc_resource(ErlNifEnv *env, ERL_NIF_TERM term, nif_t **objp) {
+static eroonga_nif_t *alloc_resource(ErlNifEnv *env) {
   ErlNifResourceType *type = (ErlNifResourceType *)enif_priv_data(env);
   return enif_alloc_resource(type, sizeof(eroonga_nif_t));
-}
-
-static void release_resource(eroonga_nif_t **resource) {
-  enif_release_resource(*resource);
-  *resource = NULL;
 }
 
 
@@ -115,7 +110,7 @@ static ERL_NIF_TERM db_open_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM *ar
     }
   }
 
-  return make_atom(env, "badarg");
+  return make_error(env, "badarg");
 }
 
 static ERL_NIF_TERM table_select_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM *argv) {
@@ -139,7 +134,7 @@ static ERL_NIF_TERM table_select_nif(ErlNifEnv *env, int argc, const ERL_NIF_TER
     }
   }
 
-  return make_atom(env, "badarg");
+  return make_error(env, "badarg");
 }
 
 
@@ -169,18 +164,13 @@ static ERL_NIF_TERM new_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM *argv) 
       return make_error(env, "enomem");
     }
 
-    ERL_NIF_TERM term =
-      make_tuple2(env, make_atom(env, "ok"), make_resource(env, resource));
-
-    relase_resource(&resource);
-
-    return term;
+    return make_tuple2(env, make_atom(env, "ok"), make_resource(env, resource));
   }
 
   return make_error(env, "badarg");
 }
 
-static void dtor(ErlNifEnv* env, void* obj) {
+static void dtor(ErlNifEnv *env, void *obj) {
 
   UNUSED(env);
 
@@ -223,8 +213,8 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info) {
   return 0;
 }
 
-static int upgrade(ErlNifEnv* env, void** priv_data,
-                   void** old_priv_data, ERL_NIF_TERM load_info) {
+static int upgrade(ErlNifEnv *env,
+                   void **priv_data, void **old_priv_data, ERL_NIF_TERM load_info) {
 
   UNUSED(env), UNUSED(load_info);
 
@@ -233,7 +223,7 @@ static int upgrade(ErlNifEnv* env, void** priv_data,
   return 0;
 }
 
-static void unload(ErlNifEnv* env, void* priv_data) {
+static void unload(ErlNifEnv *env, void *priv_data) {
 
   UNUSED(env), UNUSED(priv_data);
 
