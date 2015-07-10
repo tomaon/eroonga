@@ -6,12 +6,13 @@
  CC ?= /opt/gnu/gcc/4.7.3/bin/g++
 
 #
- REBAR_BIN  = ./rebar
+ REBAR_BIN ?= ./rebar
 
  REBAR_ENV  =
  REBAR_ENV += PATH=$(ERLANG_HOME)/bin:$(PATH)
  REBAR_ENV += GROONGA_HOME="$(GROONGA_HOME)"
  REBAR_ENV += CC="$(CC)"
+ REBAR_ENV += CFLAGS="-std=c99"
  REBAR_ENV += ERL_LIBS=deps:..
 
  REBAR_OPT  =
