@@ -5,12 +5,6 @@ eroonga: erlang client for [groonga](http://groonga.org/).
 ## Build
 
 ``` sh
-$ make build
-```
-
-Note: included rebar binary is for Erlang 16. If you want to use eroonga on Erlang 17, specify rebar path:
-
-``` sh
 $ REBAR_BIN=rebar make build
 ```
 
