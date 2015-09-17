@@ -6,7 +6,7 @@
  CC ?= /opt/gnu/gcc/4.7.3/bin/g++
 
 #
- REBAR_BIN ?= ./rebar
+ REBAR_BIN ?= rebar
 
  REBAR_ENV  =
  REBAR_ENV += PATH=$(ERLANG_HOME)/bin:$(PATH)
